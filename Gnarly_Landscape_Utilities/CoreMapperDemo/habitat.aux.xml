@@ -1,0 +1,22 @@
+<PAMDataset>
+  <PAMRasterBand band="1">
+    <Description>habitat</Description>
+    <Histograms>
+      <HistItem>
+        <HistMin>0.0007836990407668054</HistMin>
+        <HistMax>1</HistMax>
+        <BucketCount>256</BucketCount>
+        <IncludeOutOfRange>1</IncludeOutOfRange>
+        <Approximate>0</Approximate>
+        <HistCounts>23856|3|286|8716|56558|0|106|517|498|78|436|307|11|8402|290|4244|236|0|5694|18156|0|2957|0|21136|0|6112|0|0|43466|0|0|31410|0|0|0|0|10234|0|0|0|0|0|115094|0|0|0|0|0|0|0|21847|0|0|0|0|0|0|0|0|0|0|0|0|33599|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|195185|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|9121|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|237401</HistCounts>
+      </HistItem>
+    </Histograms>
+    <Metadata>
+      <MDI key="LAYER_TYPE">athematic</MDI>
+      <MDI key="STATISTICS_MINIMUM">0.00078369904076681</MDI>
+      <MDI key="STATISTICS_MAXIMUM">1</MDI>
+      <MDI key="STATISTICS_MEAN">0.41570377680532</MDI>
+      <MDI key="STATISTICS_STDDEV">0.37647884961474</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>

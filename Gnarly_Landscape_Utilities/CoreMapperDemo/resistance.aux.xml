@@ -1,0 +1,23 @@
+<PAMDataset>
+  <PAMRasterBand band="1">
+    <Description>resistance</Description>
+    <Histograms>
+      <HistItem>
+        <HistMin>1</HistMin>
+        <HistMax>1276</HistMax>
+        <BucketCount>256</BucketCount>
+        <IncludeOutOfRange>1</IncludeOutOfRange>
+        <Approximate>0</Approximate>
+        <HistCounts>497153|206316|48179|12947|743|512|581|101|5|0|26841|29717|8430|264|2|20|10|15|0|0|207|51|3|3|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|272|13|87|3|0|16|1|0|0|0|25|0|0|0|0|2|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|50|175|1378|58|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|2907|1763|3179|2863|521|1827|6917|261|0|0|15|0|14|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|983|0|338|0|0|188</HistCounts>
+      </HistItem>
+    </Histograms>
+    <GDALRasterAttributeTable/>
+    <Metadata>
+      <MDI key="LAYER_TYPE">athematic</MDI>
+      <MDI key="STATISTICS_MINIMUM">1</MDI>
+      <MDI key="STATISTICS_MAXIMUM">1276</MDI>
+      <MDI key="STATISTICS_MEAN">35.704553738744</MDI>
+      <MDI key="STATISTICS_STDDEV">164.00912081614</MDI>
+    </Metadata>
+  </PAMRasterBand>
+</PAMDataset>

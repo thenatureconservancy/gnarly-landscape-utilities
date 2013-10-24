@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!--<!DOCTYPE metadata SYSTEM "http://www.esri.com/metadata/esriprof80.dtd">-->
+<metadata xml:lang="en"><Esri><MetaID>{72DF69B2-832D-4A0E-9A2E-4D4B1B33B3BC}</MetaID><CreaDate>20110302</CreaDate><CreaTime>11595000</CreaTime><SyncOnce>TRUE</SyncOnce><DataProperties><lineage><Process ToolSource="C:\Program Files\ArcGIS\ArcToolbox\Toolboxes\Spatial Analyst Tools.tbx\ExtractByMask" Date="20110302" Time="115950">ExtractByMask leca_r StudyArea C:\HCAtoolkit\Demo_data\leca_r</Process></lineage></DataProperties></Esri></metadata>

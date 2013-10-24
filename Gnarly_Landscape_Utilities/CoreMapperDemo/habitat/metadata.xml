@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!--<!DOCTYPE metadata SYSTEM "http://www.esri.com/metadata/esriprof80.dtd">-->
+<metadata xml:lang="en"><Esri><MetaID>{D90521EB-EEBC-4DCA-A5A5-87B1B3E4E34E}</MetaID><CreaDate>20110302</CreaDate><CreaTime>12024500</CreaTime><SyncOnce>TRUE</SyncOnce><DataProperties><lineage><Process ToolSource="C:\Program Files\ArcGIS\ArcToolbox\Toolboxes\Spatial Analyst Tools.tbx\SingleOutputMapAlgebra" Date="20110302" Time="120246">SingleOutputMapAlgebra "1 /  FLOAT(C:\HCAtoolkit\Demo_data\leca_r)" C:\HCAtoolkit\Demo_data\leca_hab #</Process></lineage></DataProperties></Esri></metadata>

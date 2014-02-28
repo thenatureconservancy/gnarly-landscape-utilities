@@ -20,7 +20,7 @@ gp = arcpy.gp
 arcpy.CheckOutExtension("spatial")
 
 __filename__ = "Core_Mapper.py"
-version = '2013_1009'
+version = '2014_0228'
 
 GP_NULL = '#'
 

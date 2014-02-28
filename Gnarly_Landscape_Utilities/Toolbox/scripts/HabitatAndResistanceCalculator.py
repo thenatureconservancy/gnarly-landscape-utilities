@@ -1,21 +1,3 @@
-#redo using reclass scheme from transmission.  need to change a couple of places
-#check for existence of layer before reclassifying it
-
-
-#Can this error be avoided?:
-    # arcpy.AddError('Error: there is at least one entry in the excel spreadsheet that has no')
-        # 11/7/13- got rid of this error.  Seems not to cause problems with reclass. Is reclass why error was originally in there?
-        
-    # fix cellsize- need desc?
-
-# re-do in arcpy.  singleoutput is only thing left
-
-# Add class-specific shrink/expand functionality?
-# Shelve class-specific functionality for now.  Users can create separate input rasters to achieve this.
-# question- do we want this functionality in habitat processing?
-
-    
-    
 # ---------------------------------------------------------------------------
 # HabitatAndResistanceCalculator.py
 # Based on code written by Andrew Shirk, University of Washington, CSES Climate Impacts Group
@@ -28,7 +10,7 @@
 
 
 __filename__ = "HabitatAndResistanceCalculator.py"  
-__version__ = "2013_0610"
+__version__ = "2014_0228"
 
 # Import system modules
 import sys
@@ -232,10 +214,10 @@ def habitat_model_builder():
                 gprint('GENERATING REMAP TABLES\n')
                 for layer in layers:
                     remapFile = open(os.path.join(scratchDir, layer + '_' + task + '_remap.txt'), 'w')
-                    remapFile.write('From')
-                    remapFile.write('\t')
-                    remapFile.write('To')
-                    remapFile.write('\n')
+                    # remapFile.write('From')
+                    # remapFile.write('\t')
+                    # remapFile.write('To')
+                    # remapFile.write('\n')
                     values = []
                     expandTable = []
                     expandValueList = []
@@ -249,25 +231,11 @@ def habitat_model_builder():
                         value = int(float(ws.cell(cell).value) * 1000) 
                         values.append(value)
                         remapFile.write(str(classID_value))
-                        remapFile.write('\t')
+                        remapFile.write(' : ')
                         remapFile.write(str(value))
                         remapFile.write('\n')
                     vars()[layer + '_values'] = values
-                    # vars()[layer + '_expand'] = expandTable                    
                     remapFile.close()
-                    # gprint(str(vars()[layer + '_expand']))
-                    # gprint(str(expandValueList))
-                    # uniqueTest=npy.unique(expandValueList)
-                    # gprint('u'+str(uniqueTest))
-                    # if len(uniqueTest)>1:
-                        # arcpy.AddError('More than one expand/shrink value found for layer "' + str(layer) + '"')
-                        # arcpy.AddError('Only one non-zero value is allowed per layer')        
-                        # for msg in range(0, gp.MessageCount):
-                            # if gp.GetSeverity(msg) == 2:
-                                # gp.AddReturnMessage(msg)
-                        # exit(1)
-                    # need to sort expand table and break into sub tables if different values used
-                    # Could assume larger values take precedence and do these first
                 #Determine which layers are to be used
                 usedlayers = []
 
@@ -281,7 +249,6 @@ def habitat_model_builder():
                     expandCellsValue = ws.cell(expandCellsColumn + layerRow).value
                     if expandCellsValue > 0 and task == 'RESISTANCE' and doExpandCells == True:
                         gprint('\t%s' %layer)
-                        # expandCells = layer[-1]
                         gprint('  ***Maximum value for ' + layer + 'layer will be expanded by ' + str(expandCellsValue) + ' cell(s)'
                                ' for resistance calculations.')
                     else:
@@ -291,7 +258,9 @@ def habitat_model_builder():
                 arcpy.env.overwriteOutput = True
                 arcpy.env.workspace = layerFolder
                 scratchGDB = os.path.join(scratchDir,'scratchGDB'+task+'.gdb')
+                # clean_out_ws(scratchGDB)
                 delete_data(scratchGDB)
+                delete_dir(scratchGDB)
                 if not arcpy.Exists(scratchGDB):
                     arcpy.CreateFileGDB_management(scratchDir, 'scratchGDB'+task+'.gdb')
                 counter = 0
@@ -299,29 +268,22 @@ def habitat_model_builder():
                     gprint('Reclassifying ' + layer)
                     counter += 1
                     layerPath = os.path.join(layerFolder,layer)
-                    uniqueValueCt = arcpy.GetRasterProperties_management(layerPath,"UNIQUEVALUECOUNT")
+                    # uniqueValueCt = arcpy.GetRasterProperties_management(layerPath,"UNIQUEVALUECOUNT")
                     remapFile = os.path.join(scratchDir, str(layer)  + '_' + task + '_remap.txt')
                     arcpy.env.workspace = scratchGDB
                     arcpy.env.scratchWorkspace = scratchGDB
                     try:               
-                        outReclass = arcpy.sa.ReclassByTable(layerPath, remapFile, 'From', 'From', 'To', 'NODATA')
+                        outReclass = arcpy.sa.ReclassByASCIIFile(layerPath, remapFile) # Reclass values can't be too large?
                     except:
-                        # arcpy.env.workspace = layerFolder
                         arcpy.AddError('Reclass failed.  There may be an entry in the excel spreadsheet that has no')
                         arcpy.AddError('corresponding value in the raster being reclassified, or classes may not be')
                         arcpy.AddError('in ascending order, or habitat/resistance value may be > 1000000 maximum')
                         arcpy.AddError('Re-starting ArcGIS sometimes fixes this error.\n')
-                        x = 0
-                        while x < arcpy.MessageCount: #xxx check
-                            arcpy.AddReturnMessage(x)
-                            x = x + 1
-                        # for msg in range(0, gp.MessageCount):
-                            # if gp.GetSeverity(msg) == 2:
-                                # gp.AddReturnMessage(msg)
+                        if not arcpy.GetMessages(2) == "":
+                            arcpy.AddError(arcpy.GetMessages(2)) 
                         exit(1)
                         
-                    layerRow = str(vars()[layer + '_range'][0])#= gprint('*****'+str(vars()[layer + '_range']))
-                    # expandCellsCell = expandCellsColumn + layerRow
+                    layerRow = str(vars()[layer + '_range'][0])
                     expandCellsValue = ws.cell(expandCellsColumn + layerRow).value
 
                     if expandCellsValue > 0 and task == 'RESISTANCE' and doExpandCells == True:                    
@@ -438,7 +400,14 @@ def habitat_model_builder():
                 for i in range(1, len(usedlayers) + 1, 1):
                     delete_data('l' + str(i) + '_hab_dec')
                 
+                # Clean up
+                arcpy.env.workspace = outputGDB
+                arcpy.env.scratchWorkspace = outputGDB
+                clean_out_ws(scratchGDB)
+                gprint(scratchGDB)
                 delete_data(scratchGDB)
+                delete_dir(scratchGDB)
+                delete_dir(scratchDir)
         gprint('Done!')
         
     # Return GEOPROCESSING specific errors  
@@ -529,12 +498,28 @@ def delete_data(dataset):
     except:
         pass
 
+def clean_out_ws(ws):
+    try:
+        if gp.exists(ws):
+            gp.workspace = ws
+            gp.OverwriteOutput = True
+            fcs = gp.ListFeatureClasses()
+            for fc in fcs:
+                fcPath = os.path.join(ws,fc)
+                gp.delete_management(fcPath)
+
+            rasters = gp.ListRasters()
+            for raster in rasters:
+                rasterPath = os.path.join(ws,raster)
+                gp.delete_management(rasterPath)
+    except:
+        pass
+
 def delete_dir(dir):
     if arcpy.Exists(dir):
         try:
             arcpy.RefreshCatalog(dir)
             shutil.rmtree(dir)
-            gc.collect()
         except:
             # In case rmtree was unsuccessful due to lock on data
             try:
@@ -551,12 +536,12 @@ def str2bool(pstr):
 
         
 def clearWSLocks(inputWS):
-  '''Attempts to clear locks on a workspace.'''
-  arcpy.env.workspace = inputWS
-  if all([arcpy.Exists(inputWS), arcpy.Compact_management(inputWS), arcpy.Exists(inputWS)]):
-    gprint( 'Workspace (%s) clear to continue...' % inputWS)
-  else:
-    gprint( '!!!!!!!! ERROR WITH WORKSPACE %s !!!!!!!!' % inputWS)
+    """Attempts to clear locks on a workspace."""
+    arcpy.env.workspace = inputWS
+    if all([arcpy.Exists(inputWS), arcpy.Compact_management(inputWS), arcpy.Exists(inputWS)]):
+        gprint( 'Workspace (%s) clear to continue...' % inputWS)
+    else:
+        gprint( '!!!!!!!! ERROR WITH WORKSPACE %s !!!!!!!!' % inputWS)
                             
 if __name__ == "__main__":
     habitat_model_builder()

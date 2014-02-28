@@ -1,4 +1,4 @@
-Gnarly_Landscape_Utilities
+Gnarly Landscape Utilities
 ==========================
 
 Tools for resistance and habitat raster creation and processing. 

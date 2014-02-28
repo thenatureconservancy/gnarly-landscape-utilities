@@ -108,7 +108,7 @@ def core_mapper():
                 binaryThreshold = float(ws.cell('G' + str(variant)).value)      ## used to convert habitat model to binary 
 
                 expandCWDValue = nullfloat(int(ws.cell('H' + str(variant)).value))        ## cost-weighted distance
-                if resistanceRaster is None:
+                if expandCWDValue > 0 and resistanceRaster is None:
                     gprint('Warning: a CWD expansion value was entered but no resistance raster was specified.')
                     gprint('Skipping expansion step.')
                     expandCWDValue = 0
@@ -185,6 +185,7 @@ def core_mapper():
                 if expandCWDValue == 0:
                     gprint('\nSkipping cost-weighted distance calculations.' + '\n')
                     prelimCores = corehabitat
+                    CWDCoreHab = None
                 else:
                     gprint('\nExpanding cores by ' + str(float(expandCWDValue)) + ' ' + mapunits + 's in cost-weighted distance' + '\n')
                     CWDCoreHab = os.path.join(scratchDir,"CWDCoreHab"+str(i)+tif)

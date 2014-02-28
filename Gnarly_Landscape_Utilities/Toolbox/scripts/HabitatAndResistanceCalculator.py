@@ -1,11 +1,19 @@
+#redo using reclass scheme from transmission.  need to change a couple of places
+#check for existence of layer before reclassifying it
+
+
+#Can this error be avoided?:
+    # arcpy.AddError('Error: there is at least one entry in the excel spreadsheet that has no')
+        # 11/7/13- got rid of this error.  Seems not to cause problems with reclass. Is reclass why error was originally in there?
+        
+    # fix cellsize- need desc?
+
 # re-do in arcpy.  singleoutput is only thing left
 
 # Add class-specific shrink/expand functionality?
 # Shelve class-specific functionality for now.  Users can create separate input rasters to achieve this.
 # question- do we want this functionality in habitat processing?
 
-#Can this error be avoided?:
-    # arcpy.AddError('Error: there is at least one entry in the excel spreadsheet that has no')
     
     
 # ---------------------------------------------------------------------------
@@ -90,7 +98,7 @@ def habitat_model_builder():
                     
             exit(1)
         
-        gprint('\Habitat and Resistance Calculator version ' + __version__)
+        gprint('\nHabitat and Resistance Calculator version ' + __version__)
         gprint('\nProcessing the following Excel parameter tables:\n%s' %tables)
         tables = tables.split(';')
         layerFolder = sys.argv[2] 
@@ -201,16 +209,20 @@ def habitat_model_builder():
                     vars()[layer + '_range'] = range(min(rows) + 1, len(rows) + 1 + min(rows), 1)
                     uniqueValueCt = arcpy.GetRasterProperties_management(os.path.join(layerFolder,layer),"UNIQUEVALUECOUNT")
                     if len(rows)>int(uniqueValueCt.getOutput(0)):
-                        arcpy.AddError('Error: there is at least one entry in the excel spreadsheet that has no') #Needed because we rely on count.
-                        arcpy.AddError('corresponding value in the raster layer "' + layer + '".')
-                        # for msg in range(0, gp.MessageCount):
-                            # if gp.GetSeverity(msg) == 2:
-                                # gp.AddReturnMessage(msg)
+                        #xxx BHM 11/7/13- may not need this error?
+                        arcpy.AddWarning('Warning: there is at least value in the excel spreadsheet for layer "' + layer + '"\n'
+                        'that has no corresponding value in the layer.  This may cause reclass problems.') 
+                        
+                        # arcpy.AddError('Error: there is at least one entry in the excel spreadsheet that has no') #Needed because we rely on count.
+                        # arcpy.AddError('corresponding value in the raster layer "' + layer + '".')
+                        # # for msg in range(0, gp.MessageCount):
+                            # # if gp.GetSeverity(msg) == 2:
+                                # # gp.AddReturnMessage(msg)
                                 
-                        if not arcpy.GetMessages(2) == "":
-                            arcpy.AddError(arcpy.GetMessages(2))                                
+                        # if not arcpy.GetMessages(2) == "":
+                            # arcpy.AddError(arcpy.GetMessages(2))                                
                                 
-                        exit(1)
+                        # exit(1)
                     if len(rows)<int(uniqueValueCt.getOutput(0)):
                         arcpy.AddWarning('Warning: there is at least one raster cell value in layer "' + layer + '"')
                         arcpy.AddWarning('that has no corresponding value in the excel spreadsheet.  Cells with this') 
@@ -234,7 +246,7 @@ def habitat_model_builder():
                         
                         ### multiply by 1000 because reclassify uses integers
                         classID_value = ws.cell(classID).value
-                        value = int(float(ws.cell(cell).value) * 100000) 
+                        value = int(float(ws.cell(cell).value) * 1000) 
                         values.append(value)
                         remapFile.write(str(classID_value))
                         remapFile.write('\t')
@@ -297,7 +309,7 @@ def habitat_model_builder():
                         # arcpy.env.workspace = layerFolder
                         arcpy.AddError('Reclass failed.  There may be an entry in the excel spreadsheet that has no')
                         arcpy.AddError('corresponding value in the raster being reclassified, or classes may not be')
-                        arcpy.AddError('in ascending order.')
+                        arcpy.AddError('in ascending order, or habitat/resistance value may be > 1000000 maximum')
                         arcpy.AddError('Re-starting ArcGIS sometimes fixes this error.\n')
                         x = 0
                         while x < arcpy.MessageCount: #xxx check
@@ -335,7 +347,7 @@ def habitat_model_builder():
                     outFloat = arcpy.sa.Float('l' + str(i) + '_hab')
                     outFloat.save('l' + str(i) + '_hab_f')
                     
-                    outDec = arcpy.sa.Divide('l' + str(i) + '_hab_f', 100000)
+                    outDec = arcpy.sa.Divide('l' + str(i) + '_hab_f', 1000)
                     outDec.save('l' + str(i) + '_hab_dec')
 
                     delete_data('l' + str(i) + '_hab')

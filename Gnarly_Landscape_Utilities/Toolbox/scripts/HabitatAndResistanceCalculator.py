@@ -10,7 +10,6 @@
 
 
 __filename__ = "HabitatAndResistanceCalculator.py"  
-__version__ = "2014_0228"
 
 # Import system modules
 import sys
@@ -19,6 +18,9 @@ import time
 import traceback  
 import shutil
 import numpy as npy
+import gnarly_version as ver
+
+__version__ = ver.releaseNum
 
 from openpyxl.workbook import Workbook
 from openpyxl.reader.excel import load_workbook

@@ -1,6 +1,5 @@
 #
 # CoreMapper.py for ArcGIS 10
-# Version 0.3      October 2013
 # Developed by Andrew Shirk and Brad McRae
 # ---------------------------------------------------------------------------
 
@@ -15,12 +14,14 @@ import arcpy
 from arcpy import env
 from arcpy.sa import *
 import traceback 
+import gnarly_version as ver
+
+__version__ = ver.releaseNum
 
 gp = arcpy.gp
 arcpy.CheckOutExtension("spatial")
 
 __filename__ = "Core_Mapper.py"
-version = '2014_0228'
 
 GP_NULL = '#'
 
@@ -78,7 +79,7 @@ logFile.close()
         
 def core_mapper():
     try:   
-        gprint('\nRunning Core Mapper')
+        gprint('\nCore Mapper version ' + __version__)
         arcpy.env.overwriteOutput = 1
         lastScratchDir = None
         

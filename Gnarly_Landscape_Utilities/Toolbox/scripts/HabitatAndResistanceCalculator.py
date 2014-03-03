@@ -361,7 +361,6 @@ def habitat_model_builder():
                     addValue = 0
                     if addOneToResist:
                         addValue = 1
-                        gprint('adding 1')
                     outCellStatistics = arcpy.sa.Plus(arcpy.sa.CellStatistics(rasterList, "SUM", "DATA"), addValue)
                     
                     outCellStatistics.save(outfilename)

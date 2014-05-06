@@ -81,7 +81,7 @@ def core_mapper():
     try:   
         gprint('\nCore Mapper version ' + __version__)
         arcpy.env.overwriteOutput = 1
-        lastScratchDir = None
+        lastScratchDir = 'None'
         
         # Read each excel file
         for table in tables:
@@ -397,7 +397,7 @@ def delete_data(dataset):
         pass
 
 def delete_dir(dir):        
-    if gp.exists(dir):
+    if gp.Exists(dir):
         try:        
             gc.collect()
             shutil.rmtree(dir)

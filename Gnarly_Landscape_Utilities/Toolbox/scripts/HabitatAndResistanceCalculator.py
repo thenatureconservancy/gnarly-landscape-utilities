@@ -405,7 +405,7 @@ def habitat_model_builder():
                 arcpy.env.workspace = outputGDB
                 arcpy.env.scratchWorkspace = outputGDB
                 clean_out_ws(scratchGDB)
-                gprint(scratchGDB)
+
                 delete_data(scratchGDB)
                 delete_dir(scratchGDB)
                 delete_dir(scratchDir)

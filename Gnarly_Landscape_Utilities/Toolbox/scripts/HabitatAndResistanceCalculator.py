@@ -191,7 +191,11 @@ def habitat_model_builder():
                         if layer == layerlist[i]:
                             rows.append(i + 1)
                     vars()[layer + '_range'] = range(min(rows) + 1, len(rows) + 1 + min(rows), 1)
-                    uniqueValueCt = arcpy.GetRasterProperties_management(os.path.join(layerFolder,layer),"UNIQUEVALUECOUNT")
+                    try:
+                        uniqueValueCt = arcpy.GetRasterProperties_management(os.path.join(layerFolder,layer),"UNIQUEVALUECOUNT")
+                    except:    
+                        arcpy.BuildRasterAttributeTable_management(os.path.join(layerFolder,layer), "Overwrite")
+                        uniqueValueCt = arcpy.GetRasterProperties_management(os.path.join(layerFolder,layer),"UNIQUEVALUECOUNT")                    
                     if len(rows)>int(uniqueValueCt.getOutput(0)):
                         #xxx BHM 11/7/13- may not need this error?
                         arcpy.AddWarning('Warning: there is at least value in the excel spreadsheet for layer "' + layer + '"\n'
@@ -220,22 +224,46 @@ def habitat_model_builder():
                     # remapFile.write('\t')
                     # remapFile.write('To')
                     # remapFile.write('\n')
-                    values = []
-                    expandTable = []
-                    expandValueList = []
+                    
+                    # expandTable = []
+                    # expandValueList = []
+                    
+                    
                     for category in range(1, len(vars()[layer + '_range']) + 1):
                         cell = variableColumn + str(vars()[layer + '_range'][category - 1])
                         classID = classIDColumn + str(vars()[layer + '_range'][category - 1])
-                        expand = expandCellsColumn + str(vars()[layer + '_range'][category - 1])  
                         
                         ### multiply by 1000 because reclassify uses integers
                         classID_value = ws.cell(classID).value
                         value = int(float(ws.cell(cell).value) * 1000) 
-                        values.append(value)
-                        remapFile.write(str(classID_value))
+                        if category == 1:
+                            values = npy.array([[classID_value,value]])
+                        else:
+                            values = npy.append(values, [[classID_value,value]], axis=0)
+                    if len(values) > 0: #Sort in ascending order
+                        ind = npy.argsort((values[:, 0]))  # Sort by classID_value
+                        values = values[ind]    
+                    gprint(str(values))
+                    # values = []
+                    for category in range(0, len(vars()[layer + '_range'])):
+                        # cell = variableColumn + str(vars()[layer + '_range'][category - 1])
+                        # classID = classIDColumn + str(vars()[layer + '_range'][category - 1])
+                        # # expand = expandCellsColumn + str(vars()[layer + '_range'][category - 1])  
+                        
+                        # ### multiply by 1000 because reclassify uses integers
+                        # classID_value = ws.cell(classID).value
+                        # value = int(float(ws.cell(cell).value) * 1000) 
+                        # values.append(value)
+                        # remapFile.write(str(classID_value))
+                        # remapFile.write(' : ')
+                        # remapFile.write(str(value))
+                        # remapFile.write('\n')
+
+                        remapFile.write(str(values[category,0]))
                         remapFile.write(' : ')
-                        remapFile.write(str(value))
+                        remapFile.write(str(values[category,1]))
                         remapFile.write('\n')
+
                     vars()[layer + '_values'] = values
                     remapFile.close()
                 #Determine which layers are to be used

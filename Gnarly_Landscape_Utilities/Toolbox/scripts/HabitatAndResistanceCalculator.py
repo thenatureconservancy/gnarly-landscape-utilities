@@ -243,22 +243,8 @@ def habitat_model_builder():
                     if len(values) > 0: #Sort in ascending order
                         ind = npy.argsort((values[:, 0]))  # Sort by classID_value
                         values = values[ind]    
-                    gprint(str(values))
-                    # values = []
+                    
                     for category in range(0, len(vars()[layer + '_range'])):
-                        # cell = variableColumn + str(vars()[layer + '_range'][category - 1])
-                        # classID = classIDColumn + str(vars()[layer + '_range'][category - 1])
-                        # # expand = expandCellsColumn + str(vars()[layer + '_range'][category - 1])  
-                        
-                        # ### multiply by 1000 because reclassify uses integers
-                        # classID_value = ws.cell(classID).value
-                        # value = int(float(ws.cell(cell).value) * 1000) 
-                        # values.append(value)
-                        # remapFile.write(str(classID_value))
-                        # remapFile.write(' : ')
-                        # remapFile.write(str(value))
-                        # remapFile.write('\n')
-
                         remapFile.write(str(values[category,0]))
                         remapFile.write(' : ')
                         remapFile.write(str(values[category,1]))

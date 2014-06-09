@@ -218,17 +218,30 @@ def core_mapper():
                 regionGroup = os.path.join(scratchDir,"regionGrp"+str(i)+tif)
                 delete_data(regionGroup)
                 try:
-                    gp.RegionGroup_sa(prelimCores,regionGroup,"FOUR","WITHIN","ADD_LINK","#")
+                    outRegionGrp = RegionGroup(prelimCores, "FOUR", "WITHIN", "ADD_LINK")
+                    outRegionGrp.save(regionGroup)
                 except:
-                    gprint('Region group failed.  Retrying...')
+                    gprint('Region group failed.  Retrying with different syntax...')
                     time.sleep(5)
                     try:
-                        gp.RegionGroup_sa(prelimCores,regionGroup,"FOUR","WITHIN","ADD_LINK","#")
+                        delete_data(regionGroup)
+                        gp.RegionGroup_sa(prelimCores,regionGroup,"FOUR","WITHIN","ADD_LINK","#")                    
                     except:
-                        gprint('***********************************************')
-                        gprint('Region group failed.  Skipping this iteration')
-                        gprint('***********************************************')
-                        continue
+                        gprint('Region group failed.  Retrying one more time with a file geodatabase...')
+                        time.sleep(5)
+                        try:
+                            delete_data(regionGroup)
+                            regionGroupGDB = os.path.join(scratchDir,"regionGrp.gdb")
+                            if not arcpy.Exists(regionGroupGDB):
+                                arcpy.CreateFileGDB_management(scratchDir,os.path.basename(regionGroupGDB))
+                            regionGroup = os.path.join(regionGroupGDB,"regionGrp"+str(i))
+                            outRegionGrp = RegionGroup(prelimCores, "FOUR", "WITHIN", "ADD_LINK")
+                            outRegionGrp.save(regionGroup)
+                        except:
+                            gprint('\n***********************************************')
+                            gprint('Region group failed.  Skipping this iteration')
+                            gprint('***********************************************')
+                            continue
                 if stampCores and expandCWDValue > 0:
                     regionGroupStamped = regionGroup + 's'
                     outCon = arcpy.sa.Con(Raster(habitatRaster) > binaryThreshold, regionGroup)

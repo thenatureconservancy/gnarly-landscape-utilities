@@ -213,7 +213,17 @@ def core_mapper():
                         outCon = arcpy.sa.Con(Raster(avghabvalue) > minAvgHabValue , prelimCores)
                         outCon.save(prelimCores+'2')
                         prelimCores = prelimCores + '2'
-                        
+
+                try:
+                    maxObject = gp.GetRasterProperties(prelimCores, "MAXIMUM") 
+                except:
+                    gp.AddWarning('-------------------------------------------------')
+                    gp.AddWarning('Error: there are no pixels that meet the moving'
+                            'window criteria for creating core areas. Skipping '
+                            'this iteration.')
+                    gp.AddWarning('-------------------------------------------------')
+                    continue
+                    
                 #regiongroup, using FOUR neighbors so that a diagonal (road) breaks the patch
                 regionGroup = os.path.join(scratchDir,"regionGrp"+str(i)+tif)
                 delete_data(regionGroup)

@@ -33,6 +33,17 @@ gp = arcpy.gp
 arcpy.env.overwriteOutput = True
 
 projectFolder = sys.argv[3]       
+file,ext=os.path.splitext(projectFolder)
+if ext == '.gdb':
+    arcpy.AddError('Error: output directory must be a folder, not a geodatabase.')
+    # for msg in range(0, gp.MessageCount):
+        # if gp.GetSeverity(msg) == 2:
+            # gp.AddReturnMessage(msg)
+            
+    if not arcpy.GetMessages(2) == "":
+        arcpy.AddError(arcpy.GetMessages(2))                                
+            
+    exit(1)
 messageDir = os.path.join(projectFolder,'messages')
 scratchDir = os.path.join(projectFolder,'scratch')
 
@@ -86,8 +97,8 @@ def habitat_model_builder():
         gprint('\nProcessing the following Excel parameter tables:\n%s' %tables)
         tables = tables.split(';')
         layerFolder = sys.argv[2] 
+        
         projectfolder = sys.argv[3] + '\\'
-
         habitatMethod = sys.argv[4] 
         if habitatMethod == GP_NULL:
             habitatMethod = 'NONE'
@@ -338,7 +349,7 @@ def habitat_model_builder():
                 arcpy.env.snapRaster = referenceLayer
                 gprint('Spatial reference layer: ' + referenceLayer)
                 
-                if method == 'product' or method == "'product'":
+                if method == 'PRODUCT' or method == "'PRODUCT'":
                     # multiply all layers together and write to output folder 
                     # (map algebra)        
                     operation = []

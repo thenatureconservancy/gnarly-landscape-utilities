@@ -49,6 +49,7 @@ tables = tables.split(';')
 wb = load_workbook(filename=tables[0])
 ws = wb.get_active_sheet()
 outputBaseFolder1 = ws.cell('D2').value
+        
 messageDir = os.path.join(outputBaseFolder1,'log')
 
 if not os.path.exists(outputBaseFolder1):
@@ -101,6 +102,7 @@ def core_mapper():
                 habitatRaster = ws.cell('B' + str(variant)).value
                 resistanceRaster = nullstring(ws.cell('C' + str(variant)).value)
                 outputBaseFolder = ws.cell('D' + str(variant)).value
+                check_path(outputBaseFolder)
                 gprint('\n***************************************')            
                 gprint('PROCESSING ' + outputBaseName + ' run.\n')
 
@@ -341,9 +343,37 @@ def core_mapper():
         gprint('****Python error. Details follow.****') 
         raise_python_error(__filename__) 
         
+
 def gprint(string):
     gp.addmessage(string)
     write_log(string)
+
+    
+def check_path(path):
+    """Checks to make sure path name is not too long.
+
+    Long path names can cause problems with ESRI grids.
+    """
+    if len(path) > 140:
+        msg = ('ERROR: Directory "' + path +
+               '" is too deep.  Please choose a shallow directory'
+               '(something like "C:\PUMA").')
+        raise_error(msg)
+
+    if "-" in path or " " in path or "." in path:
+        msg = ('ERROR: Output directory cannot contain spaces, dashes, or '
+                'special characters.')
+        raise_error(msg)
+    head=path
+    for i in range(1,100):
+        if len(head) < 4: # We've gotten to the base of the tree
+            break
+        head,tail=os.path.split(head)
+        if tail[0].isdigit():
+            msg = ('ERROR: No directory names in output path can start with a number or '
+                    'else Arc may crash. Please change name of "' + tail + '" or choose a new directory.')
+            raise_error(msg)
+    return
 
 def create_dir(lmfolder):
     """Creates folder if it doesn't exist."""
@@ -385,6 +415,10 @@ def nullstring(arg_string):
         arg_string = None
     return arg_string
 
+def raise_error(msg):
+    gp.AddError(msg)
+    write_log(msg)
+    exit(1)
     
 def raise_geoproc_error(filename): 
     """Handle geoprocessor errors and provide details to user"""

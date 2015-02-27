@@ -33,6 +33,7 @@ gp = arcpy.gp
 arcpy.env.overwriteOutput = True
 
 projectFolder = sys.argv[3]       
+
 file,ext=os.path.splitext(projectFolder)
 if ext == '.gdb':
     arcpy.AddError('Error: output directory must be a folder, not a geodatabase.')
@@ -79,6 +80,7 @@ logFile.close()
             
 def habitat_model_builder():
     try: 
+        check_path(projectFolder)
         # Local variables...
         GP_NULL = '#'
         tables = sys.argv[1]
@@ -456,6 +458,12 @@ def unique(seq):
             checked.append(i)
     return checked
 
+def raise_error(msg):
+    gp.AddError(msg)
+    write_log(msg)
+    close_log_file()
+    exit(1)
+
 def raise_geoproc_error(filename): 
     """Handle geoprocessor errors and provide details to user"""
     tb = sys.exc_info()[2]  # get the traceback object
@@ -569,5 +577,31 @@ def clearWSLocks(inputWS):
     else:
         gprint( '!!!!!!!! ERROR WITH WORKSPACE %s !!!!!!!!' % inputWS)
                             
+def check_path(path):
+    """Checks to make sure path name is not too long.
+
+    Long path names can cause problems with ESRI grids.
+    """
+    if len(path) > 140:
+        msg = ('ERROR: Directory "' + path +
+               '" is too deep.  Please choose a shallow directory'
+               '(something like "C:\PUMA").')
+        raise_error(msg)
+
+    if "-" in path or " " in path or "." in path:
+        msg = ('ERROR: Output directory cannot contain spaces, dashes, or '
+                'special characters.')
+        raise_error(msg)
+    head=path
+    for i in range(1,100):
+        if len(head) < 4: # We've gotten to the base of the tree
+            break
+        head,tail=os.path.split(head)
+        if tail[0].isdigit():
+            msg = ('ERROR: No directory names in output path can start with a number or '
+                    'else Arc may crash. Please change name of "' + tail + '" or choose a new directory.')
+            raise_error(msg)
+    return
+    
 if __name__ == "__main__":
     habitat_model_builder()

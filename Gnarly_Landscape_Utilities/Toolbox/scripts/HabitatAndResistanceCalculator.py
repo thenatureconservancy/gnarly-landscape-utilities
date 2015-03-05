@@ -3,9 +3,9 @@
 # Based on code written by Andrew Shirk, University of Washington, CSES Climate Impacts Group
 # Modified by Brad McRae and Jim Platt, TNC
 # 
-# Reguired Software:
-# ArcGIS 10 with Spatial Analyst extension
-# Python 2.6
+# Required Software:
+# ArcGIS 10+ with Spatial Analyst extension
+# Python 2.6+
 # ---------------------------------------------------------------------------
 
 
@@ -461,7 +461,6 @@ def unique(seq):
 def raise_error(msg):
     gp.AddError(msg)
     write_log(msg)
-    close_log_file()
     exit(1)
 
 def raise_geoproc_error(filename): 

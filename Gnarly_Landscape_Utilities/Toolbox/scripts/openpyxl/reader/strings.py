@@ -1,77 +1,44 @@
-# coding=UTF-8
-'''
-Copyright (c) 2010 openpyxl
+from __future__ import absolute_import
+# Copyright (c) 2010-2015 openpyxl
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+"""Read the shared strings table."""
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+from openpyxl.compat import unicode
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+# package imports
+from openpyxl.utils.indexed_list import IndexedList
+from openpyxl.xml.functions import fromstring, safe_iterator
+from openpyxl.xml.constants import SHEET_MAIN_NS, XML_NS
 
-@license: http://www.opensource.org/licenses/mit-license.php
-@author: Eric Gazoni
-'''
-
-from xml.etree.cElementTree import fromstring, QName
-from openpyxl.shared.ooxml import NAMESPACES
 
 def read_string_table(xml_source):
+    """Read in all shared strings in the table"""
+    root = fromstring(text=xml_source)
+    nodes = safe_iterator(root, '{%s}si' % SHEET_MAIN_NS)
+    strings = (get_string(node) for node in nodes)
+    return IndexedList(strings)
 
-    table = {}
 
-    xmlns = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
-
-    root = fromstring(text = xml_source)
-
-    si_nodes = root.findall(QName(xmlns, 'si').text)
-
-    for i, si in enumerate(si_nodes):
-
-        table[i] = get_string(xmlns, si)
-
-    return table
-
-def get_string(xmlns, si):
-
-    rich_nodes = si.findall(QName(xmlns, 'r').text)
-
+def get_string(string_index_node):
+    """Read the contents of a specific string index"""
+    rich_nodes = string_index_node.findall('{%s}r' % SHEET_MAIN_NS)
     if rich_nodes:
-
-        res = ''
-
-        for r in rich_nodes:
-
-            cur = get_text(xmlns, r)
-
-            res += cur
-
-        return res
-
-    else:
-
-        return get_text(xmlns, si)
+        reconstructed_text = []
+        for rich_node in rich_nodes:
+            partial_text = get_text(rich_node)
+            reconstructed_text.append(partial_text)
+        return unicode(''.join(reconstructed_text))
+    return get_text(string_index_node)
 
 
-def get_text(xmlns, r):
+def get_text(rich_node):
+    """Read rich text, discarding formatting if not disallowed"""
+    text_node = rich_node.find('{%s}t' % SHEET_MAIN_NS)
+    text = text_node.text or unicode('')
 
-    t = r.find(QName(xmlns, 't').text)
+    if text_node.get('{%s}space' % XML_NS) != 'preserve':
+        text = text.strip()
 
-    cur = t.text
-
-    if t.get(QName(NAMESPACES['xml'], 'space').text) != 'preserve':
-
-        cur = cur.strip()
-
-    return cur
+    # fix XML escaping sequence for '_x'
+    text = text.replace('x005F_', '')
+    return unicode(text)

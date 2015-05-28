@@ -1,130 +1,123 @@
-'''
-Copyright (c) 2010 openpyxl
+from __future__ import absolute_import
+# Copyright (c) 2010-2015 openpyxl
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+"""Read in global settings to be maintained by the workbook object."""
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-@license: http://www.opensource.org/licenses/mit-license.php
-@author: Eric Gazoni
-'''
-
-from xml.etree.cElementTree import fromstring, QName
-from openpyxl.shared.ooxml import NAMESPACES, ARC_CORE, ARC_APP
+# package imports
+from openpyxl.xml.functions import fromstring, safe_iterator
+from openpyxl.xml.constants import (
+    DCORE_NS,
+    COREPROPS_NS,
+    DCTERMS_NS,
+    SHEET_MAIN_NS,
+    CONTYPES_NS,
+    PKG_REL_NS,
+    REL_NS,
+    ARC_CONTENT_TYPES,
+    ARC_WORKBOOK,
+    ARC_WORKBOOK_RELS,
+    WORKSHEET_TYPE,
+    EXTERNAL_LINK,
+)
 from openpyxl.workbook import DocumentProperties
-from openpyxl.shared.date_time import W3CDTF_to_datetime
-from openpyxl.namedrange import NamedRange, split_named_range
+from openpyxl.utils.datetime  import (
+    CALENDAR_WINDOWS_1900,
+    CALENDAR_MAC_1904
+    )
+from openpyxl.workbook.names.named_range import (
+    NamedRange,
+    NamedValue,
+    split_named_range,
+    refers_to_range,
+    external_range,
+    )
 
-def read_properties_core(xml_source):
+import datetime
+import re
 
-    properties = DocumentProperties()
+# constants
+VALID_WORKSHEET = WORKSHEET_TYPE
 
-    root = fromstring(text = xml_source)
 
-    creator_node = root.find(QName(NAMESPACES['dc'], 'creator').text)
+def read_excel_base_date(archive):
+    src = archive.read(ARC_WORKBOOK)
+    root = fromstring(src)
+    wbPr = root.find('{%s}workbookPr' % SHEET_MAIN_NS)
+    if wbPr is not None and wbPr.get('date1904') in ('1', 'true'):
+        return CALENDAR_MAC_1904
+    return CALENDAR_WINDOWS_1900
 
-    if creator_node is not None:
-        properties.creator = creator_node.text
-    else:
-        properties.creator = ''
 
-    last_modified_by_node = root.find(QName(NAMESPACES['cp'], 'lastModifiedBy').text)
+def read_content_types(archive):
+    """Read content types."""
+    xml_source = archive.read(ARC_CONTENT_TYPES)
+    root = fromstring(xml_source)
+    contents_root = root.findall('{%s}Override' % CONTYPES_NS)
+    for type in contents_root:
+        yield type.get('ContentType'), type.get('PartName')
 
-    if last_modified_by_node is not None:
-        properties.last_modified_by = last_modified_by_node.text
-    else:
-        properties.last_modified_by = ''
 
-    properties.created = W3CDTF_to_datetime(root.find(QName(NAMESPACES['dcterms'], 'created').text).text)
-    properties.modified = W3CDTF_to_datetime(root.find(QName(NAMESPACES['dcterms'], 'modified').text).text)
+def read_rels(archive):
+    """Read relationships for a workbook"""
+    xml_source = archive.read(ARC_WORKBOOK_RELS)
+    tree = fromstring(xml_source)
+    for element in safe_iterator(tree, '{%s}Relationship' % PKG_REL_NS):
+        rId = element.get('Id')
+        pth = element.get("Target")
+        typ = element.get('Type')
+        # normalise path
+        if pth.startswith("/xl"):
+            pth = pth.replace("/xl", "xl")
+        elif not pth.startswith("xl") and not pth.startswith(".."):
+            pth = "xl/" + pth
+        yield rId, {'path':pth, 'type':typ}
 
-    return properties
 
-def read_sheets_titles(xml_source):
+def read_sheets(archive):
+    """Read worksheet titles and ids for a workbook"""
+    xml_source = archive.read(ARC_WORKBOOK)
+    tree = fromstring(xml_source)
+    for element in safe_iterator(tree, '{%s}sheet' % SHEET_MAIN_NS):
+        attrib = element.attrib
+        attrib['id'] = attrib["{%s}id" % REL_NS]
+        del attrib["{%s}id" % REL_NS]
+        yield attrib
 
-    root = fromstring(text = xml_source)
 
-    titles_root = root.find(QName('http://schemas.openxmlformats.org/officeDocument/2006/extended-properties', 'TitlesOfParts').text)
+def detect_worksheets(archive):
+    """Return a list of worksheets"""
+    # content types has a list of paths but no titles
+    # workbook has a list of titles and relIds but no paths
+    # workbook_rels has a list of relIds and paths but no titles
+    # rels = {'id':{'title':'', 'path':''} }
+    content_types = read_content_types(archive)
+    valid_sheets = dict((path, ct) for ct, path in content_types if ct == VALID_WORKSHEET)
+    rels = dict(read_rels(archive))
+    for sheet in read_sheets(archive):
+        rel = rels[sheet['id']]
+        rel['title'] = sheet['name']
+        rel['sheet_id'] = sheet['sheetId']
+        state = sheet.get('state')
+        if state is not None:
+            rel['state'] = state
+        if ("/" + rel['path'] in valid_sheets
+            or "worksheets" in rel['path']): # fallback in case content type is missing
+            yield rel
 
-    vector = titles_root.find(QName(NAMESPACES['vt'], 'vector').text)
 
-    size = get_number_of_parts(xml_source)['Worksheets']
+def detect_external_links(archive):
+    rels = read_rels(archive)
+    for rId, d in rels:
+        if d['type'] == EXTERNAL_LINK:
+            pth = d['path']
 
-    children = [c.text for c in vector.getchildren()]
 
-    return children[:size]
+def read_workbook_code_name(xml_source):
+    tree = fromstring(xml_source)
 
-def read_named_ranges(xml_source, workbook):
+    pr = tree.find("{%s}workbookPr" % SHEET_MAIN_NS)
 
-    named_ranges = []
+    if pr is None:
+        pr = {}
 
-    root = fromstring(text = xml_source)
-
-    names_root = root.find(QName('http://schemas.openxmlformats.org/spreadsheetml/2006/main', 'definedNames').text)
-
-    BUGGY_NAMED_RANGES = ['NA()', '#REF!']
-    DISCARDED_RANGES = ['Excel_BuiltIn', ]
-
-    if names_root:
-
-        for name_node in names_root.getchildren():
-
-            range_name = name_node.get('name')
-
-            discard = False
-
-            for bug in BUGGY_NAMED_RANGES:
-                if bug in name_node.text:
-                    discard = True
-
-            for bug in DISCARDED_RANGES:
-                if bug in range_name:
-                    discard = True
-
-            if not discard:
-
-                worksheet_name, column, row = split_named_range(range_string = name_node.text)
-                worksheet = workbook.get_sheet_by_name(worksheet_name)
-                range = '%s%s' % (column, row)
-
-                named_range = NamedRange(name = range_name,
-                                         worksheet = worksheet,
-                                         range = range)
-
-                named_ranges.append(named_range)
-
-    return named_ranges
-
-def get_number_of_parts(xml_source):
-
-    parts_size = {}
-
-    root = fromstring(text = xml_source)
-
-    heading_pairs = root.find(QName('http://schemas.openxmlformats.org/officeDocument/2006/extended-properties', 'HeadingPairs').text)
-
-    vector = heading_pairs.find(QName(NAMESPACES['vt'], 'vector').text)
-
-    children = vector.getchildren()
-
-    for child_id in range(0, len(children), 2):
-
-        part_name = children[child_id].find(QName(NAMESPACES['vt'], 'lpstr').text).text
-        part_size = int(children[child_id + 1].find(QName(NAMESPACES['vt'], 'i4').text).text)
-        parts_size[part_name] = part_size
-
-    return parts_size
+    return pr.get('codeName', 'ThisWorkbook')

@@ -1,179 +1,158 @@
-'''
-Copyright (c) 2010 openpyxl
+from __future__ import absolute_import
+# Copyright (c) 2010-2015 openpyxl
+
+"""Write the shared style table."""
+
+# package imports
+
+from openpyxl.compat import safe_string
+from openpyxl.utils.indexed_list import IndexedList
+from openpyxl.xml.functions import (
+    Element,
+    SubElement,
+    ConditionalElement,
+    tostring,
+    )
+from openpyxl.xml.constants import SHEET_MAIN_NS
+
+from openpyxl.styles.colors import COLOR_INDEX
+from openpyxl.styles import DEFAULTS
+from openpyxl.styles import numbers
+from openpyxl.styles.fills import GradientFill, PatternFill
+
+
+class StyleWriter(object):
+
+    def __init__(self, workbook):
+        self.wb = workbook
+        self._root = Element('styleSheet', {'xmlns': SHEET_MAIN_NS})
+
+    @property
+    def styles(self):
+        return self.wb._cell_styles
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    @property
+    def fonts(self):
+        return self.wb._fonts
+
+    @property
+    def fills(self):
+        return self.wb._fills
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+    @property
+    def borders(self):
+        return self.wb._borders
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+    @property
+    def number_formats(self):
+        return self.wb._number_formats
 
-@license: http://www.opensource.org/licenses/mit-license.php
-@author: Eric Gazoni
-'''
+    @property
+    def alignments(self):
+        return self.wb._alignments
 
-from xml.etree.cElementTree import ElementTree, Element, SubElement
+    @property
+    def protections(self):
+        return self.wb._protections
 
-from openpyxl.shared.xmltools import get_document_content
+    def write_table(self):
+        self._write_number_formats()
+        self._write_fonts()
+        self._write_fills()
+        self._write_borders()
+
+        self._write_named_styles()
+        self._write_cell_styles()
+        self._write_style_names()
+        self._write_differential_styles()
+        self._write_table_styles()
+        self._write_colors()
+
+        return tostring(self._root)
+
+
+    def _write_number_formats(self):
+        node = SubElement(self._root, 'numFmts', count= "%d" % len(self.number_formats))
+        for idx, nf in enumerate(self.number_formats, 164):
+            SubElement(node, 'numFmt', {'numFmtId':'%d' % idx,
+                                        'formatCode':'%s' % nf}
+                       )
+
+    def _write_fonts(self):
+        fonts_node = SubElement(self._root, 'fonts', count="%d" % len(self.fonts))
+        for font in self.fonts:
+            fonts_node.append(font.to_tree())
+
+
+    def _write_fills(self):
+        fills_node = SubElement(self._root, 'fills', count="%d" % len(self.fills))
+        for fill in self.fills:
+            fills_node.append(fill.to_tree())
+
+    def _write_borders(self):
+        """Write the child elements for an individual border section"""
+        borders_node = SubElement(self._root, 'borders', count="%d" % len(self.borders))
+        for border in self.borders:
+            borders_node.append(border.to_tree())
+
+    def _write_named_styles(self):
+        cell_style_xfs = SubElement(self._root, 'cellStyleXfs', {'count':'1'})
+        SubElement(cell_style_xfs, 'xf',
+            {'numFmtId':"0", 'fontId':"0", 'fillId':"0", 'borderId':"0"})
 
-def create_style_table(workbook):
+    def _write_cell_styles(self):
+        """ write styles combinations based on ids found in tables """
+        # writing the cellXfs
+        cell_xfs = SubElement(self._root, 'cellXfs',
+                              count='%d' % len(self.styles))
 
-    styles_by_crc = {}
+        for style in self.styles:
 
-    for worksheet in workbook.worksheets:
+            node = style.to_tree()
+            cell_xfs.append(node)
 
-        for style in worksheet._styles.values():
+            if style.applyAlignment:
+                node.set('applyAlignment', '1')
+                al = self.alignments[style.alignmentId]
+                el = al.to_tree()
+                node.append(el)
 
-            styles_by_crc[style.__crc__()] = style
+            if style.applyProtection:
+                node.set('applyProtection', '1')
+                prot = self.protections[style.protectionId]
+                el = prot.to_tree()
+                node.append(el)
 
 
-    return dict([(style, i + 1) for i, style in enumerate(styles_by_crc.values())])
+    def _write_style_names(self):
+        cell_styles = SubElement(self._root, 'cellStyles', {'count':'1'})
+        SubElement(cell_styles, 'cellStyle',
+            {'name':"Normal", 'xfId':"0", 'builtinId':"0"})
 
-def write_style_table(style_table):
 
-    root_node = Element('styleSheet', {'xmlns':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'})
+    def _write_differential_styles(self):
+        dxfs = SubElement(self._root, "dxfs", count=str(len(self.wb._differential_styles)))
+        for fmt in self.wb._differential_styles:
+            dxfs.append(fmt.to_tree())
+        return dxfs
 
-    sorted_styles = sorted(style_table.iteritems(), key = lambda pair:pair[1])
 
-    style_list = [s[0] for s in sorted_styles]
+    def _write_table_styles(self):
 
-    number_format_table = write_number_formats(root_node, style_list)
+        SubElement(self._root, 'tableStyles',
+            {'count':'0', 'defaultTableStyle':'TableStyleMedium9',
+            'defaultPivotStyle':'PivotStyleLight16'})
 
-    write_fonts(root_node, style_list)
+    def _write_colors(self):
+        """
+        Workbook contains a different colour index.
+        """
 
-    write_fills(root_node, style_list)
+        colors = self.wb._colors
+        if colors == COLOR_INDEX:
+            return
 
-    write_borders(root_node, style_list)
-
-    write_cell_style_xfs(root_node, style_list)
-
-    # writing the cellXfs
-    cell_xfs = SubElement(root_node, 'cellXfs', {'count':'%d' % (len(style_list) + 1)})
-    SubElement(cell_xfs, 'xf', {'numFmtId':'0',
-                                'fontId':'0',
-                                'fillId':'0',
-                                'xfId':'0',
-                                'borderId':'0'})
-    for style in style_list:
-
-        SubElement(cell_xfs, 'xf', {'numFmtId':'%d' % number_format_table[style.number_format],
-                                    'applyNumberFormat':'1',
-                                    'fontId':'0',
-                                    'fillId':'0',
-                                    'xfId':'0',
-                                    'borderId':'0'})
-
-    write_cell_style(root_node, style_list)
-
-    write_dxfs(root_node, style_list)
-
-    write_table_styles(root_node, style_list)
-
-    return get_document_content(xml_node = root_node)
-
-def write_fonts(root_node, style_list):
-
-    fonts = SubElement(root_node, 'fonts', {'count':'1'})
-
-    font_node = SubElement(fonts, 'font')
-
-    SubElement(font_node, 'sz', {'val':'11'})
-    SubElement(font_node, 'color', {'theme':'1'})
-    SubElement(font_node, 'name', {'val':'Calibri'})
-    SubElement(font_node, 'family', {'val':'2'})
-    SubElement(font_node, 'scheme', {'val':'minor'})
-
-def write_fills(root_node, style_list):
-
-    fills = SubElement(root_node, 'fills', {'count':'2'})
-
-    fill = SubElement(fills, 'fill')
-    SubElement(fill, 'patternFill', {'patternType':'none'})
-
-    fill = SubElement(fills, 'fill')
-    SubElement(fill, 'patternFill', {'patternType':'gray125'})
-
-
-def write_borders(root_node, style_list):
-
-    borders = SubElement(root_node, 'borders', {'count':'1'})
-
-    border = SubElement(borders, 'border')
-
-    SubElement(border, 'left')
-    SubElement(border, 'right')
-    SubElement(border, 'top')
-    SubElement(border, 'bottom')
-    SubElement(border, 'diagonal')
-
-def write_cell_style_xfs(root_node, style_list):
-
-    cell_style_xfs = SubElement(root_node, 'cellStyleXfs', {'count':'1'})
-
-    xf = SubElement(cell_style_xfs, 'xf', {'numFmtId':"0",
-                                           'fontId':"0",
-                                           'fillId':"0",
-                                           'borderId':"0"})
-
-def write_cell_style(root_node, style_list):
-
-    cell_styles = SubElement(root_node, 'cellStyles', {'count':'1'})
-
-    cell_style = SubElement(cell_styles, 'cellStyle', {'name':"Normal",
-                                                       'xfId':"0",
-                                                       'builtinId':"0"})
-
-def write_dxfs(root_node, style_list):
-
-    dxfs = SubElement(root_node, 'dxfs', {'count':'0'})
-
-def write_table_styles(root_node, style_list):
-
-    table_styles = SubElement(root_node, 'tableStyles', {'count':'0',
-                                                         'defaultTableStyle':'TableStyleMedium9',
-                                                         'defaultPivotStyle':'PivotStyleLight16'})
-
-def write_number_formats(root_node, style_list):
-
-    number_format_table = {}
-
-    number_format_list = []
-    exceptions_list = []
-    num_fmt_id = 165 # start at a greatly higher value as any builtin can go
-    num_fmt_offset = 0
-
-    for style in style_list:
-
-        if not style.number_format in number_format_list  :
-            number_format_list.append(style.number_format)
-
-    for number_format in number_format_list:
-
-        if number_format.is_builtin():
-            number_format_table[number_format] = number_format.builtin_format_id(number_format.format_code)
-        else:
-            number_format_table[number_format] = num_fmt_id + num_fmt_offset
-            num_fmt_offset += 1
-            exceptions_list.append(number_format)
-
-    num_fmts = SubElement(root_node, 'numFmts', {'count':'%d' % len(exceptions_list)})
-
-    for number_format in exceptions_list :
-
-        SubElement(num_fmts, 'numFmt', {'numFmtId':'%d' % number_format_table[number_format],
-                                        'formatCode':'%s' % number_format.format_code})
-
-
-
-    return number_format_table
+        cols = SubElement(self._root, "colors")
+        rgb = SubElement(cols, "indexedColors")
+        for color in colors:
+            SubElement(rgb, "rgbColor", rgb=color)

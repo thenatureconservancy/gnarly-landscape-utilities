@@ -4,8 +4,8 @@
 # Modified by Brad McRae and Jim Platt, TNC
 # 
 # Required Software:
-# ArcGIS 10+ with Spatial Analyst extension
-# Python 2.6+
+# ArcGIS 10.x with Spatial Analyst extension
+# Python 2.6 or 2.7
 # ---------------------------------------------------------------------------
 
 

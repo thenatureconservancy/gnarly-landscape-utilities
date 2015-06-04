@@ -1,6 +1,9 @@
-#
+# ---------------------------------------------------------------------------
 # CoreMapper.py for ArcGIS 10
 # Developed by Andrew Shirk and Brad McRae
+# Required Software:
+# ArcGIS 10.x with Spatial Analyst extension
+# Python 2.6 or 2.7
 # ---------------------------------------------------------------------------
 
 # Import system modules

@@ -51,16 +51,9 @@ scratchDir = os.path.join(projectFolder,'scratch')
 
 doExpandCells = True # Temporarily disable this feature
 
-
-if not os.path.exists(messageDir):
-    os.makedirs(messageDir)
-
-if not os.path.exists(scratchDir):
-    os.makedirs(scratchDir)    
-    
-if not os.path.exists(messageDir):
-    arcpy.CreateFolder_management(os.path.dirname(messageDir), os.path.basename(messageDir))    
-    
+create_dir(messageDir)
+create_dir(scratchDir)
+        
 ft = tuple(time.localtime())
 timeNow = time.ctime()
 fileName = ('%s_%s_%s_%s%s_%s.txt' % (ft[0], ft[1], ft[2], ft[3], ft[4], 'H_R_Calc'))
@@ -150,8 +143,7 @@ def habitat_model_builder():
             for tableName in tables:
                 tableBase,ext = os.path.splitext(os.path.basename(tableName))
                 # species = species_tbl[0:-5]
-                if not os.path.isdir(projectfolder):
-                    os.makedirs(projectfolder)
+                create_dir(projectfolder)
                     
                 outputGDB = os.path.join(projectfolder,'habitat_resis_layers.gdb')
                 # delete_data(outputGDB) #Caused file locks
@@ -505,7 +497,7 @@ def build_stats(outfilename):
 def create_dir(lmfolder):
     """Creates folder if it doesn't exist."""
     if not os.path.exists(lmfolder):
-        arcpy.CreateFolder_management(os.path.dirname(lmfolder), os.path.basename(lmfolder))    
+        os.makedirs(lmfolder)    
                                        
 def gprint(string):
     arcpy.AddMessage(string)

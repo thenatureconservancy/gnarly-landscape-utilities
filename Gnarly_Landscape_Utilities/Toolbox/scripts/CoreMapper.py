@@ -52,14 +52,9 @@ outputBaseFolder1 = ws.cell('D2').value
         
 messageDir = os.path.join(outputBaseFolder1,'log')
 
-if not os.path.exists(outputBaseFolder1):
-    gp.CreateFolder_management(os.path.dirname(outputBaseFolder1),
-                               os.path.basename(outputBaseFolder1))
-
-if not os.path.exists(messageDir):
-    gp.CreateFolder_management(os.path.dirname(messageDir),
-                               os.path.basename(messageDir))
-       
+create_dir(outputBaseFolder1)
+create_dir(messageDir)
+    
 ft = tuple(time.localtime())
 timeNow = time.ctime()
 fileName = ('%s_%s_%s_%s%s_%s.txt' % (ft[0], ft[1], ft[2], ft[3], ft[4], 
@@ -378,8 +373,7 @@ def check_path(path):
 def create_dir(lmfolder):
     """Creates folder if it doesn't exist."""
     if not os.path.exists(lmfolder):
-        gp.CreateFolder_management(os.path.dirname(lmfolder),
-                                       os.path.basename(lmfolder))    
+        os.makedirs(lmfolder)
 
 def write_log(string):
     try:

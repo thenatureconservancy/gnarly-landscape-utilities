@@ -34,6 +34,11 @@ arcpy.env.overwriteOutput = True
 
 projectFolder = sys.argv[3]       
 
+def create_dir(lmfolder):
+    """Creates folder if it doesn't exist."""
+    if not os.path.exists(lmfolder):
+        os.makedirs(lmfolder)    
+
 file,ext=os.path.splitext(projectFolder)
 if ext == '.gdb':
     arcpy.AddError('Error: output directory must be a folder, not a geodatabase.')
@@ -89,6 +94,11 @@ def habitat_model_builder():
             exit(1)
         
         gprint('\nHabitat and Resistance Calculator version ' + __version__)
+        gprint('\n-----------------------------------------------------------------')
+        gprint('If you use this software, please cite it so others can find it!')
+        gprint('See user guide for preferred citation')
+        gprint('-----------------------------------------------------------------')
+
         gprint('\nProcessing the following Excel parameter tables:\n%s' %tables)
         tables = tables.split(';')
         layerFolder = sys.argv[2] 
@@ -191,6 +201,8 @@ def habitat_model_builder():
                 layers = unique(layerlist)
                 gprint('Input Layers: %s' %str(layers))
                 for layer in layers:
+                    if layer == 'n':
+                        continue
                     rows = []
                     for i in range(0, len(layerlist), 1):
                         if layer == layerlist[i]:
@@ -224,6 +236,8 @@ def habitat_model_builder():
                 #Generate remap table and write to outputGDB
                 gprint('GENERATING REMAP TABLES\n')
                 for layer in layers:
+                    if layer == 'n':
+                        continue
                     remapFile = open(os.path.join(scratchDir, layer + '_' + task + '_remap.txt'), 'w')
                     # remapFile.write('From')
                     # remapFile.write('\t')
@@ -262,6 +276,7 @@ def habitat_model_builder():
 
                 for layer in layers:
                     #if min(vars()[layer + '_values']) < 1000:  
+                    if layer != 'n':
                         usedlayers.append(layer)
 
                 gprint('THE FOLLOWING LAYERS WILL BE INCLUDED IN CALCULATIONS:')
@@ -298,8 +313,8 @@ def habitat_model_builder():
                     except:
                         arcpy.AddError('Reclass failed.  There may be an entry in the excel spreadsheet that has no')
                         arcpy.AddError('corresponding value in the raster being reclassified, or classes may not be')
-                        arcpy.AddError('in ascending order, or habitat/resistance value may be > 1000000 maximum')
-                        arcpy.AddError('Re-starting ArcGIS sometimes fixes this error.\n')
+                        arcpy.AddError('in ascending order, or habitat/resistance value may be > 1000000 maximum.')
+                        arcpy.AddError('Re-starting ArcGIS or selecting a new output directory sometimes fixes this error.\n')
                         if not arcpy.GetMessages(2) == "":
                             arcpy.AddError(arcpy.GetMessages(2)) 
                         exit(1)
@@ -429,6 +444,10 @@ def habitat_model_builder():
                 delete_dir(scratchGDB)
                 delete_dir(scratchDir)
         gprint('Done!')
+        gprint('\n-----------------------------------------------------------------')
+        gprint('If you use this software, please cite it so others can find it!')
+        gprint('See user guide for preferred citation')
+        gprint('-----------------------------------------------------------------')
         
     # Return GEOPROCESSING specific errors  
     except arcgisscripting.ExecuteError: 
@@ -493,11 +512,6 @@ def build_stats(outfilename):
             arcpy.BuildPyramids_management(outfilename)       
         except:
             pass
-
-def create_dir(lmfolder):
-    """Creates folder if it doesn't exist."""
-    if not os.path.exists(lmfolder):
-        os.makedirs(lmfolder)    
                                        
 def gprint(string):
     arcpy.AddMessage(string)

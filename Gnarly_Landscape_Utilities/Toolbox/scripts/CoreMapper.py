@@ -31,6 +31,11 @@ GP_NULL = '#'
 tif = '.tif'
 tif = ''
 
+def create_dir(lmfolder):
+    """Creates folder if it doesn't exist."""
+    if not os.path.exists(lmfolder):
+        os.makedirs(lmfolder)
+        
 def str2Bool(pstr):
     """Convert ESRI boolean string to Python boolean type"""
     if 'true' in pstr.lower() or 'yes' in pstr.lower():
@@ -79,6 +84,10 @@ logFile.close()
 def core_mapper():
     try:   
         gprint('\nCore Mapper version ' + __version__)
+        gprint('\n-----------------------------------------------------------------')
+        gprint('If you use this software, please cite it so others can find it!')
+        gprint('See user guide for preferred citation')
+        gprint('-----------------------------------------------------------------')
         arcpy.env.overwriteOutput = 1
         lastScratchDir = 'None'
         
@@ -100,7 +109,18 @@ def core_mapper():
                 habitatRaster = ws.cell('B' + str(variant)).value
                 resistanceRaster = nullstring(ws.cell('C' + str(variant)).value)
                 outputBaseFolder = ws.cell('D' + str(variant)).value
+                if outputBaseFolder is None or outputBaseName is None:
+                    continue
                 check_path(outputBaseFolder)
+                file,ext=os.path.splitext(outputBaseFolder)
+                if ext == '.gdb':
+                    arcpy.AddError('Error: output directory must be a folder, not a geodatabase.')
+                    gprint('***********************************************')
+                    gprint('Error: output directory must be a folder, not a geodatabase.'
+                            '\nSkipping this iteration.')
+                    gprint('***********************************************\n')
+                    continue
+
                 gprint('\n***************************************')            
                 gprint('PROCESSING ' + outputBaseName + ' run.\n')
 
@@ -332,6 +352,11 @@ def core_mapper():
                     lastScratchDir = scratchDir
                 gprint('\nCore processing complete.\n')
                 
+        gprint('\n-----------------------------------------------------------------')
+        gprint('If you use this software, please cite it so others can find it!')
+        gprint('See user guide for preferred citation')
+        gprint('-----------------------------------------------------------------\n')
+    
     # Return GEOPROCESSING specific errors  
     except arcpy.ExecuteError: 
         gprint('****Geoprocessing error. Details follow.****') 
@@ -360,7 +385,7 @@ def check_path(path):
 
     if "-" in path or " " in path or "." in path:
         msg = ('ERROR: Output directory cannot contain spaces, dashes, or '
-                'special characters.')
+                'special characters. \nNote it also must be a folder, not a geodatabase.')
         raise_error(msg)
     head=path
     for i in range(1,100):
@@ -372,11 +397,6 @@ def check_path(path):
                     'else Arc may crash. Please change name of "' + tail + '" or choose a new directory.')
             raise_error(msg)
     return
-
-def create_dir(lmfolder):
-    """Creates folder if it doesn't exist."""
-    if not os.path.exists(lmfolder):
-        os.makedirs(lmfolder)
 
 def write_log(string):
     try:

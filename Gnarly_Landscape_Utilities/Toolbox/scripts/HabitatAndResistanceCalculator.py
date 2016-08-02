@@ -96,7 +96,7 @@ def habitat_model_builder():
         gprint('\nHabitat and Resistance Calculator version ' + __version__)
         gprint('\n-----------------------------------------------------------------')
         gprint('If you use this software, please cite it so others can find it!')
-        gprint('See user guide for preferred citation')
+        gprint('See www.circuitscape.org/gnarly-landscape-utilities \nfor preferred citation')
         gprint('-----------------------------------------------------------------')
 
         gprint('\nProcessing the following Excel parameter tables:\n%s' %tables)
@@ -285,7 +285,10 @@ def habitat_model_builder():
                     expandCellsValue = ws.cell(expandCellsColumn + layerRow).value
                     if expandCellsValue > 0 and task == 'RESISTANCE' and doExpandCells == True:
                         gprint('\t%s' %layer)
-                        gprint('  ***Maximum value for ' + layer + 'layer will be expanded by ' + str(expandCellsValue) + ' cell(s)'
+                        if method == 'MINIMUM' or method == "'MINIMUM'": 
+                            gprint('    ***MINIMUM value for reclassified layer ' + layer + ' will be expanded by ' + str(expandCellsValue) + ' cell(s).')
+                        else:
+                            gprint('  ***Maximum value for ' + layer + 'layer will be expanded by ' + str(expandCellsValue) + ' cell(s)'
                                ' for resistance calculations.')
                     else:
                         gprint('\t%s' %layer)
@@ -323,10 +326,17 @@ def habitat_model_builder():
                     expandCellsValue = ws.cell(expandCellsColumn + layerRow).value
 
                     if expandCellsValue > 0 and task == 'RESISTANCE' and doExpandCells == True:                    
-                        gprint('    ***Maximum value for reclassified layer ' + layer + ' will be expanded by ' + str(expandCellsValue) + ' cell(s).')
+                        if method == 'MINIMUM' or method == "'MINIMUM'": 
+                            gprint('    ***MINIMUM value for reclassified layer ' + layer + ' will be expanded by ' + str(expandCellsValue) + ' cell(s).')
+                        else:
+                            gprint('    ***Maximum value for reclassified layer ' + layer + ' will be expanded by ' + str(expandCellsValue) + ' cell(s).')
+
                         arcpy.env.extent = os.path.join(layerFolder,layer)
                         neighborhood = arcpy.sa.NbrCircle(str(int(expandCellsValue)), "CELL")
-                        outFocalStatistics = arcpy.sa.FocalStatistics(outReclass, neighborhood, "MAXIMUM","")      
+                        if method == 'MINIMUM' or method == "'MINIMUM'":
+                            outFocalStatistics = arcpy.sa.FocalStatistics(outReclass, neighborhood, "MINIMUM","")      
+                        else:
+                            outFocalStatistics = arcpy.sa.FocalStatistics(outReclass, neighborhood, "MAXIMUM","")      
                         outFocalStatistics.save(os.path.join(str(scratchGDB), 'l' + str(counter) + '_hab'))  
                         arcpy.env.workspace = layerFolder                        
                         arcpy.env.extent = referenceLayer
@@ -343,14 +353,23 @@ def habitat_model_builder():
                 for i in range(1, len(usedlayers) + 1, 1):
                     gprint('     ' + usedlayers[i-1])
                     outFloat = arcpy.sa.Float('l' + str(i) + '_hab')
-                    outFloat.save('l' + str(i) + '_hab_f')
+                    # outFloat.save('l' + str(i) + '_hab_f')
                     
-                    outDec = arcpy.sa.Divide('l' + str(i) + '_hab_f', 1000)
-                    outDec.save('l' + str(i) + '_hab_dec')
-
+                    # outDec = arcpy.sa.Divide('l' + str(i) + '_hab_f', 1000)
+                    outDec = arcpy.sa.Divide(outFloat, 1000)
+                    del outFloat
+                    try:
+                        outDec.save('l' + str(i) + '_hab_dec')
+                    except:
+                        gprint('failed to save.')
+                        delete_data('l' + str(i) + '_hab_dec')
+                        outDec.save('l' + str(i) + '_hab_dec')
+                    
+                    del outDec
+                        
                     delete_data('l' + str(i) + '_hab')
-                    delete_data('l' + str(i) + '_hab_f')
-                
+                    # delete_data('l' + str(i) + '_hab_f')
+                    
                 gprint('\nCOMBINING LAYERS')
                 referenceLayer = os.path.join(layerFolder,referenceLayer)
                 arcpy.env.cellSize = referenceLayer
@@ -446,7 +465,7 @@ def habitat_model_builder():
         gprint('Done!')
         gprint('\n-----------------------------------------------------------------')
         gprint('If you use this software, please cite it so others can find it!')
-        gprint('See user guide for preferred citation')
+        gprint('See www.circuitscape.org/gnarly-landscape-utilities \nfor preferred citation')
         gprint('-----------------------------------------------------------------')
         
     # Return GEOPROCESSING specific errors  

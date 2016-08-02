@@ -86,7 +86,7 @@ def core_mapper():
         gprint('\nCore Mapper version ' + __version__)
         gprint('\n-----------------------------------------------------------------')
         gprint('If you use this software, please cite it so others can find it!')
-        gprint('See user guide for preferred citation')
+        gprint('See www.circuitscape.org/gnarly-landscape-utilities \nfor preferred citation')
         gprint('-----------------------------------------------------------------')
         arcpy.env.overwriteOutput = 1
         lastScratchDir = 'None'
@@ -312,7 +312,7 @@ def core_mapper():
                     arcpy.RasterToPolygon_conversion(coreRaster, corePolygons, "NO_SIMPLIFY", "VALUE")
                 except:
                     gprint('********************************************')
-                    gprint('NO cores that meet critera to map!  \nSkipping this iteration.')
+                    gprint('NO cores that meet your critera to map! \n(For example there may be no cores larger than the \nminimum core area size.)  \nSkipping this iteration.')
                     gprint('********************************************\n')
                     continue
                     
@@ -354,7 +354,7 @@ def core_mapper():
                 
         gprint('\n-----------------------------------------------------------------')
         gprint('If you use this software, please cite it so others can find it!')
-        gprint('See user guide for preferred citation')
+        gprint('See www.circuitscape.org/gnarly-landscape-utilities \nfor preferred citation')
         gprint('-----------------------------------------------------------------\n')
     
     # Return GEOPROCESSING specific errors  

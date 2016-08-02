@@ -442,13 +442,13 @@ def raise_geoproc_error(filename):
     tb = sys.exc_info()[2]
     tbinfo = traceback.format_tb(tb)[0]
     line = tbinfo.split(", ")[1]
-
     gp.AddError("Geoprocessing error on **" + line + "** of " + filename +
                 " :")
     if not arcpy.GetMessages(2) == "":
-            arcpy.AddError(arcpy.GetMessages(2))
-        
-    gprint('\n Try a new output directory.  Sometimes that does the trick.')    
+        arcpy.AddError(arcpy.GetMessages(2))
+        write_log(arcpy.GetMessages(2))
+
+    gprint('\nTry a new output directory. Sometimes that does the trick.')    
     exit(0)
 
 def raise_python_error(filename): 
@@ -458,9 +458,12 @@ def raise_python_error(filename):
     line = tbinfo.split(", ")[1]
 
     err = traceback.format_exc().splitlines()[-1]
-
     arcpy.AddError("Python error on **" + line + "** of " + filename)
     arcpy.AddError(err)
+    write_log(err)
+    if 'nonetype' in err.lower():
+        gprint('One of your Excel file fields may be blank.')
+    
     exit(0)
 
 def delete_data(dataset):

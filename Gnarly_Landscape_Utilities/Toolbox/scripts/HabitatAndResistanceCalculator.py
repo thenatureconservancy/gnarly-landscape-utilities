@@ -17,8 +17,11 @@ import os
 import time
 import traceback  
 import shutil
+import ctypes
+import platform
 import numpy as npy
 import gnarly_version as ver
+
 
 __version__ = ver.releaseNum
 
@@ -79,6 +82,9 @@ logFile.close()
 def habitat_model_builder():
     try: 
         check_path(projectFolder)
+        mb=get_free_space_mb(projectFolder)      
+        gprint ('\n' + str(mb) + ' MB available on output drive.')       
+        
         # Local variables...
         GP_NULL = '#'
         tables = sys.argv[1]
@@ -123,6 +129,12 @@ def habitat_model_builder():
         gprint('Resistance values should be in column %s' %resistanceVariableColumn)
         gprint('EXTENT and CELL SIZE of output will be based on the first layer.\n')
         
+        for tableName in tables:
+            tableBase,ext = os.path.splitext(os.path.basename(tableName))
+            if tableBase[0].isdigit():
+                msg = ('ERROR: Excel spreadsheet names cannot start with digits. Please rename ' + os.path.basename(tableName))
+                raise_error(msg)    
+
         if (habitatMethod == 'NONE' or habitatMethod == "'NONE'") and (resistMethod == 'NONE' or resistMethod == "'NONE'"):
             gprint('*' * 45)
             gprint('Both habitat and resistance methods are set to none! Bailing.')
@@ -150,7 +162,9 @@ def habitat_model_builder():
                 
             gprint('Using %s method on Excel column %s' %(method, variableColumn))
             # Iterate habitat model for each table in table list
+            iter = 0
             for tableName in tables:
+                iter = iter + 1
                 tableBase,ext = os.path.splitext(os.path.basename(tableName))
                 # species = species_tbl[0:-5]
                 create_dir(projectfolder)
@@ -238,7 +252,7 @@ def habitat_model_builder():
                 for layer in layers:
                     if layer == 'n':
                         continue
-                    remapFile = open(os.path.join(scratchDir, layer + '_' + task + '_remap.txt'), 'w')
+                    remapFile = open(os.path.join(scratchDir, layer + '_' + task + '_remap' + str(iter) + '.txt'), 'w')
                     # remapFile.write('From')
                     # remapFile.write('\t')
                     # remapFile.write('To')
@@ -296,19 +310,19 @@ def habitat_model_builder():
                 #Reclassify layer by remap table
                 arcpy.env.overwriteOutput = True
                 arcpy.env.workspace = layerFolder
-                scratchGDB = os.path.join(scratchDir,'scratchGDB'+task+'.gdb')
+                scratchGDB = os.path.join(scratchDir,'scratchGDB' + task + str(iter) + '.gdb')
                 # clean_out_ws(scratchGDB)
                 delete_data(scratchGDB)
                 delete_dir(scratchGDB)
                 if not arcpy.Exists(scratchGDB):
-                    arcpy.CreateFileGDB_management(scratchDir, 'scratchGDB'+task+'.gdb')
+                    arcpy.CreateFileGDB_management(scratchDir, 'scratchGDB' + task + str(iter) + '.gdb')
                 counter = 0
                 for layer in usedlayers:
                     gprint('Reclassifying ' + layer)
                     counter += 1
                     layerPath = os.path.join(layerFolder,layer)
                     # uniqueValueCt = arcpy.GetRasterProperties_management(layerPath,"UNIQUEVALUECOUNT")
-                    remapFile = os.path.join(scratchDir, str(layer)  + '_' + task + '_remap.txt')
+                    remapFile = os.path.join(scratchDir, layer + '_' + task + '_remap' + str(iter) + '.txt')                   
                     arcpy.env.workspace = scratchGDB
                     arcpy.env.scratchWorkspace = scratchGDB
                     try:               
@@ -321,7 +335,7 @@ def habitat_model_builder():
                         if not arcpy.GetMessages(2) == "":
                             arcpy.AddError(arcpy.GetMessages(2)) 
                         exit(1)
-                        
+
                     layerRow = str(vars()[layer + '_range'][0])
                     expandCellsValue = ws.cell(expandCellsColumn + layerRow).value
 
@@ -386,9 +400,9 @@ def habitat_model_builder():
                     operation = ",".join(operation).replace(",", " ")
                     operation = operation[:-2]
                     if task == 'HABITAT':
-                        outfilename = os.path.join(outputGDB,tableBase + "_Habitat_prod")
+                        outfilename = os.path.join(outputGDB, tableBase + "_Habitat_prod")
                     else:
-                        outfilename = os.path.join(outputGDB,tableBase + "_R_prod")
+                        outfilename = os.path.join(outputGDB, tableBase + "_R_prod")
 
                     # arcpy.env.workspace = outputGDB
 
@@ -405,9 +419,9 @@ def habitat_model_builder():
                 gprint(' ')    
                 if method == 'SUM' or method == "'SUM'":      
                     if task == 'HABITAT':
-                        outfilename = os.path.join(outputGDB,tableBase + "_Habitat_sum")
+                        outfilename = os.path.join(outputGDB, tableBase + "_Habitat_sum")
                     else:
-                        outfilename = os.path.join(outputGDB,tableBase + "_R_sum")
+                        outfilename = os.path.join(outputGDB, tableBase + "_R_sum")
                     
                     gprint('ADDING LAYERS TOGETHER\n')      
                     
@@ -422,9 +436,9 @@ def habitat_model_builder():
                     
                 elif method == 'MINIMUM' or method == "'MINIMUM'": 
                     if task == 'HABITAT':
-                        outfilename = os.path.join(outputGDB,tableBase + "_Habitat_min")
+                        outfilename = os.path.join(outputGDB, tableBase + "_Habitat_min")
                     else:
-                        outfilename = os.path.join(outputGDB,tableBase + "_R_min")
+                        outfilename = os.path.join(outputGDB, tableBase + "_R_min")
 
                     # calculate minimum value of all layers and write to output folder
                     # (map algebra)              
@@ -436,13 +450,13 @@ def habitat_model_builder():
                     outCellStatistics = arcpy.sa.CellStatistics(rasterList, "MINIMUM", "DATA")
                     outCellStatistics.save(outfilename)
                     build_stats(outfilename)        
-                                       
+                
                 elif method == 'MAXIMUM' or method == "'MAXIMUM'": 
-                    method = habitatMethod
+                    # method = habitatMethod bhm 8/2/16
                     if task == 'HABITAT':
-                        outfilename = os.path.join(outputGDB,tableBase + "_Habitat_max")
+                        outfilename = os.path.join(outputGDB, tableBase + "_Habitat_max")
                     else:
-                        outfilename = os.path.join(outputGDB,tableBase + "_R_max")
+                        outfilename = os.path.join(outputGDB, tableBase + "_R_max")
                     gprint('CALCULATING MAXIMUM ' + task + ' VALUE' + '\n')
                     outCellStatistics = arcpy.sa.CellStatistics(rasterList, "MAXIMUM", "DATA")
                     outCellStatistics.save(outfilename)
@@ -481,6 +495,17 @@ def habitat_model_builder():
     
     
 # Define functions
+def get_free_space_mb(dirname):
+    """Return folder/drive free space (in megabytes)."""
+    if platform.system() == 'Windows':
+        free_bytes = ctypes.c_ulonglong(0)
+        ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(dirname), None, None, ctypes.pointer(free_bytes))
+        return free_bytes.value / 1024 / 1024
+    else:
+        st = os.statvfs(dirname)
+        return st.f_bavail * st.f_frsize / 1024 / 1024
+
+
 def unique(seq):
     checked = []
     for i in seq:
@@ -501,13 +526,16 @@ def raise_geoproc_error(filename):
     line = tbinfo.split(", ")[1]
 
     arcpy.AddError("Geoprocessing error on **" + line + "** of " + filename + " :")
+    write_log("Geoprocessing error on **" + line + "** of " + filename + " :")
     if not arcpy.GetMessages(2) == "":
         arcpy.AddError(arcpy.GetMessages(2))                                
-
+        write_log(arcpy.GetMessages(2))
 
     # for msg in range(0, gp.MessageCount):
         # if gp.GetSeverity(msg) == 2:
             # gp.AddReturnMessage(msg)
+    mb=get_free_space_mb(projectFolder)      
+    gprint ('\n' + str(mb) + ' MB available on output drive.')       
     exit(0)
 
 def raise_python_error(filename): 
@@ -520,7 +548,9 @@ def raise_python_error(filename):
     err = traceback.format_exc().splitlines()[-1]
 
     arcpy.AddError("Python error on **" + line + "** of " + filename)
+    write_log("Python error on **" + line + "** of " + filename)
     arcpy.AddError(err)
+    write_log(err)
     exit(0)
 
 def build_stats(outfilename):
